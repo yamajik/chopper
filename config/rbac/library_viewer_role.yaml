@@ -1,0 +1,20 @@
+# permissions for end users to view libraries.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: library-viewer-role
+rules:
+- apiGroups:
+  - core.kess.io
+  resources:
+  - libraries
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - core.kess.io
+  resources:
+  - libraries/status
+  verbs:
+  - get

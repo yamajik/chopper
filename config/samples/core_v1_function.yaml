@@ -1,0 +1,32 @@
+apiVersion: core.kess.io/v1
+kind: Function
+metadata:
+  name: sample
+spec:
+  runtime: sample
+  data: |
+    print("sample")
+  file:
+    name: "{Version}.py"
+---
+apiVersion: core.kess.io/v1
+kind: Function
+metadata:
+  name: sample-v1
+spec:
+  runtime: sample
+  data: |
+    print("sample: v1")
+  file:
+    name: "{Version}.py"
+---
+apiVersion: core.kess.io/v1
+kind: Function
+metadata:
+  name: sample2-v1
+spec:
+  runtime: sample
+  data: |
+    print("sample2: v1")
+  file:
+    name: "{Version}.py"

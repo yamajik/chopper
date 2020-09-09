@@ -1,0 +1,114 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: functions.core.kess.io
+spec:
+  group: core.kess.io
+  names:
+    categories:
+    - kess
+    kind: Function
+    listKind: FunctionList
+    plural: functions
+    shortNames:
+    - fn
+    singular: function
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.ready
+      name: Ready
+      type: string
+    - jsonPath: .spec.function
+      name: Function
+      type: string
+    - jsonPath: .spec.version
+      name: Version
+      type: string
+    - jsonPath: .spec.runtime
+      name: Runtime
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: Function is the Schema for the functions API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: FunctionSpec defines the desired state of Function
+            properties:
+              binaryData:
+                description: The binary of function
+                format: byte
+                type: string
+              configMap:
+                description: The filename format of function
+                properties:
+                  mount:
+                    default: /kess/fn/{Name}
+                    description: The filename format of function
+                    type: string
+                  name:
+                    default: fn-{Name}
+                    description: The filename format of function
+                    type: string
+                type: object
+              data:
+                description: The string of function
+                type: string
+              file:
+                description: The filename format of function
+                properties:
+                  name:
+                    default: '{Version}'
+                    description: The filename format of function
+                    type: string
+                type: object
+              function:
+                description: Optional version of function
+                type: string
+              runtime:
+                description: The runtime name of function
+                type: string
+              version:
+                description: Optional version of function
+                type: string
+            type: object
+          status:
+            description: FunctionStatus defines the observed state of Function
+            properties:
+              ready:
+                description: Optional ready string of runtime for show
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      scale:
+        labelSelectorPath: .status.selector
+        specReplicasPath: .spec.replicas
+        statusReplicasPath: .status.replicas
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
