@@ -1,22 +1,8 @@
 apiVersion: core.kess.io/v1
 kind: Runtime
 metadata:
-  name: sample
+  name: python3
 spec:
-  image: "python:3"
-  command:
-    - python
-    - -m
-    - http.server
----
-apiVersion: core.kess.io/v1
-kind: Runtime
-metadata:
-  name: sample2
-spec:
-  replicas: 2
-  image: "python:3"
-  command:
-    - python
-    - -m
-    - http.server
+  image: "yamajik/kess-python-runtime:3"
+  command: ["/start-reload.sh"]
+  port: 80

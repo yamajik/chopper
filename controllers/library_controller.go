@@ -176,8 +176,6 @@ func (r *LibraryReconciler) applyRuntimeStatusLibraries(ctx context.Context, lib
 		return err
 	}
 
-	// TODO: hot update runtime deployment
-
 	return nil
 }
 
@@ -194,8 +192,6 @@ func (r *LibraryReconciler) deleteRuntimeStatusLibraries(ctx context.Context, li
 	}); err != nil {
 		return err
 	}
-
-	// TODO: hot upgrade runtime deployment
 
 	return nil
 }

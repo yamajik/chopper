@@ -105,10 +105,10 @@ dev-samples:
 	kubectl -n kess-samples apply -f config/samples
 
 dev-samples-list:
-	kubectl -n kess-samples get kess,all,cm
+	kubectl -n kess-samples get kess,all,cm,ing
 
 dev-samples-watch:
-	watch -n 1 kubectl -n kess-samples get kess,all,cm
+	watch -n 1 kubectl -n kess-samples get kess,all,cm,ing
 
 dev-samples-delete:
 	kubectl -n kess-samples delete kess --all

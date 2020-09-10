@@ -3,30 +3,8 @@ kind: Library
 metadata:
   name: sample
 spec:
-  runtime: sample
+  runtime: python3
   data:
     __init__.py: |
       def test():
           print("sample")
----
-apiVersion: core.kess.io/v1
-kind: Library
-metadata:
-  name: sample-v1
-spec:
-  runtime: sample
-  data:
-    __init__.py: |
-      def test():
-          print("sample: v1")
----
-apiVersion: core.kess.io/v1
-kind: Library
-metadata:
-  name: sample2-v1
-spec:
-  runtime: sample
-  data:
-    __init__.py: |
-      def test():
-          print("sample2: v1")

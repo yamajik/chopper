@@ -6,6 +6,9 @@ var (
 
 	// FieldManager bulabula
 	FieldManager = GroupVersion.Group
+
+	// VersionConfig bulabula
+	VersionConfig = "version/config"
 )
 
 // Type Constants bulabula

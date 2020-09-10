@@ -18,8 +18,11 @@ package controllers
 
 import (
 	"context"
+	"strconv"
+	"time"
 
 	"github.com/go-logr/logr"
+	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -116,15 +119,22 @@ func (r *FunctionReconciler) applyStatus(ctx context.Context, fn *corev1.Functio
 func (r *FunctionReconciler) applyExternalResources(ctx context.Context, fn *corev1.Function) error {
 	var cm = fn.ConfigMap()
 
-	if _, err := r.Resource().CreateOrUpdate(ctx, &cm, func() error {
+	result, err := r.Resource().CreateOrUpdate(ctx, &cm, func() error {
 		fn.SetConfigMap(&cm)
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
 
 	if err := r.applyRuntimeStatusFunctions(ctx, fn); err != nil {
 		return err
+	}
+
+	if result != operations.ResultNone {
+		if err := r.rollUpdateRuntimeDeployment(ctx, fn); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -149,11 +159,19 @@ func (r *FunctionReconciler) deleteExternalResources(ctx context.Context, fn *co
 			return err
 		}
 	} else {
-		if _, err := r.Resource().Update(ctx, &cm, func() error {
+		result, err := r.Resource().Update(ctx, &cm, func() error {
 			fn.UnsetConfigMap(&cm)
 			return nil
-		}); err != nil {
+		})
+		if err != nil {
 			return err
+		}
+		if result != operations.ResultNone {
+			if result != operations.ResultNone {
+				if err := r.rollUpdateRuntimeDeployment(ctx, fn); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
@@ -186,29 +204,60 @@ func (r *FunctionReconciler) applyRuntimeStatusFunctions(ctx context.Context, fn
 		return err
 	}
 
-	// TODO: hot upgrade runtime deployment
-
 	return nil
 }
 
 func (r *FunctionReconciler) deleteRuntimeStatusFunctions(ctx context.Context, fn *corev1.Function) error {
-	var runtime corev1.Runtime
+	var rt corev1.Runtime
 
-	if _, err := r.Resource().Get(ctx, fn.RuntimeNamespacedName(), &runtime); err != nil {
+	if _, err := r.Resource().Get(ctx, fn.RuntimeNamespacedName(), &rt); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
 		return nil
 	}
 
-	if _, err := r.Resource().Status().Update(ctx, &runtime, func() error {
-		runtime.DeleteStatusFunctions(fn)
+	if _, err := r.Resource().Status().Update(ctx, &rt, func() error {
+		rt.DeleteStatusFunctions(fn)
 		return nil
 	}); err != nil {
 		return err
 	}
 
-	// TODO: hot upgrade runtime deployment
+	return nil
+}
+
+func (r *FunctionReconciler) rollUpdateRuntimeDeployment(ctx context.Context, fn *corev1.Function) error {
+	var (
+		rt     corev1.Runtime
+		deploy appsv1.Deployment
+	)
+
+	if _, err := r.Resource().Get(ctx, fn.RuntimeNamespacedName(), &rt); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+		return nil
+	}
+
+	if _, err := r.Resource().Get(ctx, rt.NamespacedName(), &deploy); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+		return nil
+	}
+
+	versionConfig := strconv.Itoa(time.Now().Nanosecond())
+
+	if _, err := r.Resource().Update(ctx, &rt, func() error {
+		if deploy.Spec.Template.Annotations == nil {
+			deploy.Spec.Template.Annotations = make(map[string]string)
+		}
+		deploy.Spec.Template.Annotations[corev1.VersionConfig] = versionConfig
+		return nil
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
