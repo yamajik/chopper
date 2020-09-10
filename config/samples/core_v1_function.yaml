@@ -11,7 +11,7 @@ spec:
     fn = Function()
     @fn.get("/")
     def sample1():
-        return {"fn": "sample1"}
+        return {"fn": "sample6"}
 ---
 apiVersion: core.kess.io/v1
 kind: Function

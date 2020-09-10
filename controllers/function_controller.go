@@ -167,10 +167,8 @@ func (r *FunctionReconciler) deleteExternalResources(ctx context.Context, fn *co
 			return err
 		}
 		if result != operations.ResultNone {
-			if result != operations.ResultNone {
-				if err := r.rollUpdateRuntimeDeployment(ctx, fn); err != nil {
-					return err
-				}
+			if err := r.rollUpdateRuntimeDeployment(ctx, fn); err != nil {
+				return err
 			}
 		}
 	}
@@ -249,7 +247,7 @@ func (r *FunctionReconciler) rollUpdateRuntimeDeployment(ctx context.Context, fn
 
 	versionConfig := strconv.Itoa(time.Now().Nanosecond())
 
-	if _, err := r.Resource().Update(ctx, &rt, func() error {
+	if _, err := r.Resource().Update(ctx, &deploy, func() error {
 		if deploy.Spec.Template.Annotations == nil {
 			deploy.Spec.Template.Annotations = make(map[string]string)
 		}
