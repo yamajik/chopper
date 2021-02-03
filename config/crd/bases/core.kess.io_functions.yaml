@@ -21,17 +21,13 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.ready
-      name: Ready
+    - jsonPath: .status.configMap
+      name: ConfigMap
+      priority: 10
       type: string
-    - jsonPath: .spec.function
-      name: Function
-      type: string
-    - jsonPath: .spec.version
-      name: Version
-      type: string
-    - jsonPath: .spec.runtime
-      name: Runtime
+    - jsonPath: .status.runtimeStatus
+      name: Runtimes
+      priority: 10
       type: string
     name: v1
     schema:
@@ -54,48 +50,32 @@ spec:
             description: FunctionSpec defines the desired state of Function
             properties:
               binaryData:
-                description: The binary of function
-                format: byte
-                type: string
+                additionalProperties:
+                  format: byte
+                  type: string
+                description: The binary files of function
+                type: object
               configMap:
-                description: The filename format of function
-                properties:
-                  mount:
-                    default: /kess/fn/{Name}
-                    description: The filename format of function
-                    type: string
-                  name:
-                    default: fn-{Name}
-                    description: The filename format of function
-                    type: string
-                type: object
+                default: fn-{Name}
+                description: The configmap name format of function
+                type: string
               data:
-                description: The string of function
-                type: string
-              file:
-                description: The filename format of function
-                properties:
-                  name:
-                    default: '{Version}'
-                    description: The filename format of function
-                    type: string
+                additionalProperties:
+                  type: string
+                description: The string files of function
                 type: object
-              function:
-                description: Optional version of function
-                type: string
-              runtime:
-                description: The runtime name of function
-                type: string
-              version:
-                description: Optional version of function
-                type: string
             type: object
           status:
             description: FunctionStatus defines the observed state of Function
             properties:
-              ready:
-                description: Optional ready string of runtime for show
+              configMap:
+                description: The configmap name format of function
                 type: string
+              runtimeStatus:
+                additionalProperties:
+                  type: string
+                description: Optional ready string of runtime for show
+                type: object
             type: object
         type: object
     served: true

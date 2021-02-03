@@ -104,47 +104,13 @@ func (r *RuntimeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 func (r *RuntimeReconciler) applyStatus(ctx context.Context, rt *corev1.Runtime) error {
-	var (
-		fns         corev1.FunctionList
-		libs        corev1.LibraryList
-		matchLabels = client.MatchingLabels{"kess-runtime": rt.Name}
-	)
-
 	if _, err := r.Resource().Status().Update(ctx, rt, func() error {
 		var deploy appsv1.Deployment
-		r.Get(ctx, rt.NamespacedName(), &deploy)
+		r.Get(ctx, rt.NamespacedName(rt.Name), &deploy)
 		rt.UpdateStatusReady(&deploy)
 		return nil
 	}); err != nil {
 		return err
-	}
-
-	if _, err := r.Resource().List(ctx, &fns, matchLabels); err != nil {
-		return err
-	}
-	if _, err := r.Resource().List(ctx, &libs, matchLabels); err != nil {
-		return err
-	}
-
-	var errors []error
-	for _, fn := range fns.Items {
-		if _, err := r.Resource().Status().Update(ctx, &fn, func() error {
-			fn.UpdateStatusReady(rt)
-			return nil
-		}); err != nil {
-			errors = append(errors, err)
-		}
-	}
-	for _, lib := range libs.Items {
-		if _, err := r.Resource().Status().Update(ctx, &lib, func() error {
-			lib.UpdateStatusReady(rt)
-			return nil
-		}); err != nil {
-			errors = append(errors, err)
-		}
-	}
-	if len(errors) > 0 {
-		return errors[0]
 	}
 
 	return nil
@@ -152,7 +118,56 @@ func (r *RuntimeReconciler) applyStatus(ctx context.Context, rt *corev1.Runtime)
 
 func (r *RuntimeReconciler) applyExternalResources(ctx context.Context, rt *corev1.Runtime) error {
 	var (
-		deploy       = rt.Deployment()
+		volumes []apiv1.Volume
+		mounts  []apiv1.VolumeMount
+	)
+
+	for _, rtfn := range rt.Spec.Functions {
+		var fn corev1.Function
+		if _, err := r.Resource().Get(ctx, rt.NamespacedName(rtfn.Name), &fn); err != nil {
+			return err
+		}
+		volumeName := fn.ConfigMapName()
+		volumes = append(volumes, apiv1.Volume{
+			Name: volumeName,
+			VolumeSource: apiv1.VolumeSource{
+				ConfigMap: &apiv1.ConfigMapVolumeSource{
+					LocalObjectReference: apiv1.LocalObjectReference{
+						Name: volumeName,
+					},
+				},
+			},
+		})
+		mounts = append(mounts, apiv1.VolumeMount{
+			Name:      volumeName,
+			MountPath: rtfn.Mount,
+		})
+	}
+
+	for _, rtlib := range rt.Spec.Libraries {
+		var lib corev1.Library
+		if _, err := r.Resource().Get(ctx, rt.NamespacedName(rtlib.Name), &lib); err != nil {
+			return err
+		}
+		volumeName := lib.ConfigMapName()
+		volumes = append(volumes, apiv1.Volume{
+			Name: volumeName,
+			VolumeSource: apiv1.VolumeSource{
+				ConfigMap: &apiv1.ConfigMapVolumeSource{
+					LocalObjectReference: apiv1.LocalObjectReference{
+						Name: volumeName,
+					},
+				},
+			},
+		})
+		mounts = append(mounts, apiv1.VolumeMount{
+			Name:      volumeName,
+			MountPath: rtlib.Mount,
+		})
+	}
+
+	var (
+		deploy       = rt.Deployment(volumes, mounts)
 		svc          = rt.Service()
 		patchOptions = client.PatchOptions{FieldManager: corev1.FieldManager}
 	)
@@ -174,7 +189,7 @@ func (r *RuntimeReconciler) deleteExternalResources(ctx context.Context, rt *cor
 	var (
 		deploy         appsv1.Deployment
 		svc            apiv1.Service
-		namespacedName = rt.NamespacedName()
+		namespacedName = rt.NamespacedName(rt.Name)
 		deleteOptions  = client.DeleteOptions{}
 	)
 

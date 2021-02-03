@@ -23,59 +23,23 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// FunctionFile bulabula
-type FunctionFile struct {
-	// The filename format of function
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="{Version}"
-	Name string `json:"name,omitempty"`
-}
-
-// FunctionConfigMap bulabula
-type FunctionConfigMap struct {
-	// The filename format of function
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="fn-{Name}"
-	Name string `json:"name,omitempty"`
-
-	// The filename format of function
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="/kess/fn/{Name}"
-	Mount string `json:"mount,omitempty"`
-}
-
 // FunctionSpec defines the desired state of Function
 type FunctionSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Optional version of function
+	// The configmap name format of function
 	// +kubebuilder:validation:Optional
-	Function string `json:"function,omitempty"`
+	// +kubebuilder:default="fn-{Name}"
+	ConfigMap string `json:"configMap,omitempty"`
 
-	// Optional version of function
+	// The string files of function
 	// +kubebuilder:validation:Optional
-	Version string `json:"version,omitempty"`
+	Data map[string]string `json:"data,omitempty"`
 
-	// The runtime name of function
-	// +kubebuilder:validation:Required
-	Runtime string `json:"runtime,omitempty"`
-
-	// The filename format of function
+	// The binary files of function
 	// +kubebuilder:validation:Optional
-	File FunctionFile `json:"file,omitempty"`
-
-	// The filename format of function
-	// +kubebuilder:validation:Optional
-	ConfigMap FunctionConfigMap `json:"configMap,omitempty"`
-
-	// The string of function
-	// +kubebuilder:validation:Optional
-	Data string `json:"data,omitempty"`
-
-	// The binary of function
-	// +kubebuilder:validation:Optional
-	BinaryData []byte `json:"binaryData,omitempty"`
+	BinaryData map[string][]byte `json:"binaryData,omitempty"`
 }
 
 // FunctionStatus defines the observed state of Function
@@ -83,18 +47,20 @@ type FunctionStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// The configmap name format of function
+	// +kubebuilder:validation:Optional
+	ConfigMap string `json:"configMap,omitempty"`
+
 	// Optional ready string of runtime for show
 	// +kubebuilder:validation:Optional
-	Ready string `json:"ready,omitempty"`
+	RuntimeStatus map[string]string `json:"runtimeStatus,omitempty"`
 }
 
 // +kubebuilder:resource:categories="kess",shortName="fn"
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
-// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`,priority=0
-// +kubebuilder:printcolumn:name="Function",type=string,JSONPath=`.spec.function`,priority=0
-// +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`,priority=0
-// +kubebuilder:printcolumn:name="Runtime",type=string,JSONPath=`.spec.runtime`,priority=0
+// +kubebuilder:printcolumn:name="ConfigMap",type=string,JSONPath=`.status.configMap`,priority=10
+// +kubebuilder:printcolumn:name="Runtimes",type=string,JSONPath=`.status.runtimeStatus`,priority=10
 // +kubebuilder:object:root=true
 
 // Function is the Schema for the functions API

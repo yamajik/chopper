@@ -18,6 +18,8 @@ package controllers
 
 import (
 	"context"
+	"strconv"
+	"time"
 
 	"github.com/go-logr/logr"
 	apiv1 "k8s.io/api/core/v1"
@@ -104,93 +106,76 @@ func (r *LibraryReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 func (r *LibraryReconciler) applyStatus(ctx context.Context, lib *corev1.Library) error {
-	_, err := r.Resource().Status().Update(ctx, lib, func() error {
-		var rt corev1.Runtime
-		r.Get(ctx, lib.RuntimeNamespacedName(), &rt)
-		lib.UpdateStatusReady(&rt)
+	if _, err := r.Resource().Status().Update(ctx, lib, func() error {
+		for name := range lib.Status.RuntimeStatus {
+			var rt corev1.Runtime
+			if _, err := r.Resource().Get(ctx, lib.RuntimeNamespacedName(name), &rt); err != nil {
+				if !apierrors.IsNotFound(err) {
+					lib.Status.RuntimeStatus[name] = corev1.DefaultReady
+				} else {
+					delete(lib.Status.RuntimeStatus, name)
+				}
+			} else {
+				lib.UpdateRuntimeStatus(&rt)
+			}
+		}
 		return nil
-	})
-	return err
-}
-
-func (r *LibraryReconciler) applyExternalResources(ctx context.Context, lib *corev1.Library) error {
-	var (
-		cm           = lib.ConfigMap()
-		patchOptions = client.PatchOptions{FieldManager: corev1.FieldManager}
-	)
-
-	ctrl.SetControllerReference(lib, &cm, r.Scheme)
-	if _, err := r.Resource().Patch(ctx, &cm, client.Apply, &patchOptions); err != nil {
+	}); err != nil {
 		return err
 	}
 
-	if err := r.applyRuntimeStatusLibraries(ctx, lib); err != nil {
+	return nil
+}
+
+func (r *LibraryReconciler) applyExternalResources(ctx context.Context, lib *corev1.Library) error {
+	var cm = lib.ConfigMap()
+
+	result, err := r.Resource().CreateOrUpdate(ctx, &cm, func() error {
+		ctrl.SetControllerReference(lib, &cm, r.Scheme)
+		return nil
+	})
+	if err != nil {
 		return err
+	}
+
+	if result != operations.ResultNone {
+		if err := r.rollUpdateRuntime(ctx, lib); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 func (r *LibraryReconciler) deleteExternalResources(ctx context.Context, lib *corev1.Library) error {
-	var (
-		cm            apiv1.ConfigMap
-		deleteOptions = client.DeleteOptions{}
-	)
+	var cm apiv1.ConfigMap
 
-	if err := r.deleteRuntimeStatusLibraries(ctx, lib); err != nil {
+	if _, err := r.Resource().GetAndDelete(ctx, lib.NamespacedName(lib.ConfigMapName()), &cm); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
-		return nil
-	}
-
-	if _, err := r.Resource().GetAndDelete(ctx, lib.ConfigMapNamespacedName(), &cm, &deleteOptions); err != nil {
-		return err
 	}
 
 	return nil
 }
 
-func (r *LibraryReconciler) applyRuntimeStatusLibraries(ctx context.Context, lib *corev1.Library) error {
-	var rt corev1.Runtime
-	if _, err := r.Resource().Get(ctx, lib.RuntimeNamespacedName(), &rt); err != nil {
-		if apierrors.IsNotFound(err) {
-			r.Resource().Status().Update(ctx, lib, func() error {
-				lib.UpdateStatusReady(&rt)
-				return nil
-			})
+func (r *LibraryReconciler) rollUpdateRuntime(ctx context.Context, lib *corev1.Library) error {
+	var versionConfig = strconv.Itoa(time.Now().Nanosecond())
+
+	for name := range lib.Status.RuntimeStatus {
+		var rt corev1.Runtime
+		if _, err := r.Resource().Get(ctx, lib.RuntimeNamespacedName(name), &rt); err != nil {
+			continue
 		}
-		return err
-	}
-
-	if _, err := r.Resource().Update(ctx, lib, func() error {
-		return ctrl.SetControllerReference(&rt, lib, r.Scheme)
-	}); err != nil {
-		return err
-	}
-
-	if _, err := r.Resource().Status().Update(ctx, &rt, func() error {
-		rt.UpdateStatusLibraries(lib)
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *LibraryReconciler) deleteRuntimeStatusLibraries(ctx context.Context, lib *corev1.Library) error {
-	var rt corev1.Runtime
-
-	if _, err := r.Resource().Get(ctx, lib.RuntimeNamespacedName(), &rt); err != nil {
-		return err
-	}
-
-	if _, err := r.Resource().Status().Update(ctx, &rt, func() error {
-		rt.DeleteStatusLibraries(lib)
-		return nil
-	}); err != nil {
-		return err
+		if _, err := r.Resource().Update(ctx, &rt, func() error {
+			if rt.Annotations == nil {
+				rt.Annotations = make(map[string]string)
+			}
+			rt.Annotations[corev1.VersionConfig] = versionConfig
+			return nil
+		}); err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -4,14 +4,14 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/yamajik/kess/utils/strings"
 )
 
 // Default bulabula
 func (r *Library) Default() {
 	var (
-		labels       = r.Labels()
-		namedVersion = r.NamedVersion()
+		labels = r.Labels()
 	)
 
 	if r.ObjectMeta.Labels == nil {
@@ -20,52 +20,39 @@ func (r *Library) Default() {
 	for k, v := range labels {
 		r.ObjectMeta.Labels[k] = v
 	}
-
-	if r.Spec.Library == "" {
-		r.Spec.Library = namedVersion.Name
-	}
-	if r.Spec.Version == "" {
-		r.Spec.Version = namedVersion.Version
-	}
 }
 
 // DefaultStatus bulabula
 func (r *Library) DefaultStatus() {
-	if r.Status.Ready == "" {
-		r.Status.Ready = DefaultReady
-	}
-}
+	r.Status.ConfigMap = r.ConfigMapName()
 
-// NamedVersion bulabula
-func (r *Library) NamedVersion() NamedVersion {
-	return NamedVersionFromString(r.Name)
+	if r.Status.RuntimeStatus == nil {
+		r.Status.RuntimeStatus = make(map[string]string)
+	}
 }
 
 // Labels bulabula
 func (r *Library) Labels() map[string]string {
 	return map[string]string{
 		"kess-type":    TypeLibrary,
-		"kess-library": r.Spec.Library,
-		"kess-version": r.Spec.Version,
-		"kess-runtime": r.Spec.Runtime,
+		"kess-library": r.Name,
 	}
 }
 
-// RuntimeNamespacedName bulabula
-func (r *Library) RuntimeNamespacedName() types.NamespacedName {
+// NamespacedName bulabula
+func (r *Library) NamespacedName(name string) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      r.Spec.Runtime,
+		Name:      name,
 		Namespace: r.Namespace,
 	}
 }
 
-// RuntimeConfigMap bulabula
-func (r *Library) RuntimeConfigMap() RuntimeConfigMap {
-	namedVersion := r.NamedVersion()
-	return RuntimeConfigMap{
-		Name:  namedVersion.Format(r.Spec.ConfigMap.Name),
-		Mount: namedVersion.Format(r.Spec.ConfigMap.Mount),
+// ConfigMapName bulabula
+func (r *Library) ConfigMapName() string {
+	m := map[string]interface{}{
+		"Name": r.Name,
 	}
+	return strings.Format(r.Spec.ConfigMap, m)
 }
 
 // ConfigMap bulabula
@@ -78,51 +65,29 @@ func (r *Library) ConfigMap() apiv1.ConfigMap {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.RuntimeConfigMap().Name,
+			Name:      r.ConfigMapName(),
 			Namespace: r.Namespace,
 			Labels:    labels,
 		},
 		Data:       r.Spec.Data,
 		BinaryData: r.Spec.BinaryData,
-		// Immutable:  pointer.Bool(true),
 	}
 
 	return configmap
 }
 
-// ConfigMapNamespacedName bulabula
-func (r *Library) ConfigMapNamespacedName() types.NamespacedName {
+// RuntimeNamespacedName bulabula
+func (r *Library) RuntimeNamespacedName(name string) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      r.RuntimeConfigMap().Name,
+		Name:      name,
 		Namespace: r.Namespace,
 	}
 }
 
-// SetConfigMap bulabula
-func (r *Library) SetConfigMap(out *apiv1.ConfigMap) {
-	out.Data = r.Spec.Data
-	out.BinaryData = r.Spec.BinaryData
-}
-
-// UnsetConfigMap bulabula
-func (r *Library) UnsetConfigMap(out *apiv1.ConfigMap) {
-	out.Data = nil
-	out.BinaryData = nil
-}
-
-// UpdateStatusReady bulabula
-func (r *Library) UpdateStatusReady(rt *Runtime) {
-	r.Status.Ready = rt.Status.Ready
-}
-
-// AddFinalizer bulabula
-func (r *Library) AddFinalizer(finalizer string) error {
-	controllerutil.AddFinalizer(r, finalizer)
-	return nil
-}
-
-// RemoveFinalizer bulabula
-func (r *Library) RemoveFinalizer(finalizer string) error {
-	controllerutil.RemoveFinalizer(r, finalizer)
-	return nil
+// UpdateRuntimeStatus bulabula
+func (r *Library) UpdateRuntimeStatus(rt *Runtime) {
+	if r.Status.RuntimeStatus == nil {
+		r.Status.RuntimeStatus = make(map[string]string)
+	}
+	r.Status.RuntimeStatus[rt.Name] = rt.Status.Ready
 }

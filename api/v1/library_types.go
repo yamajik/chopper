@@ -23,45 +23,21 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// LibraryConfigMap bulabula
-type LibraryConfigMap struct {
-	// The filename format of function
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="lib-{Name}-{Version}"
-	Name string `json:"name,omitempty"`
-
-	// The filename format of function
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="/kess/lib/{Name}-{Version}"
-	Mount string `json:"mount,omitempty"`
-}
-
 // LibrarySpec defines the desired state of Library
 type LibrarySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Optional version of function
+	// The configmap name format of library
 	// +kubebuilder:validation:Optional
-	Library string `json:"library,omitempty"`
+	// +kubebuilder:default="lib-{Name}"
+	ConfigMap string `json:"configMap,omitempty"`
 
-	// Optional version of function
-	// +kubebuilder:validation:Optional
-	Version string `json:"version,omitempty"`
-
-	// The runtime name of lib
-	// +kubebuilder:validation:Required
-	Runtime string `json:"runtime,omitempty"`
-
-	// The filename format of lib
-	// +kubebuilder:validation:Optional
-	ConfigMap LibraryConfigMap `json:"configMap,omitempty"`
-
-	// The string of lib
+	// The string files of library
 	// +kubebuilder:validation:Optional
 	Data map[string]string `json:"data,omitempty"`
 
-	// The binary of lib
+	// The binary files of library
 	// +kubebuilder:validation:Optional
 	BinaryData map[string][]byte `json:"binaryData,omitempty"`
 }
@@ -71,18 +47,20 @@ type LibraryStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// The configmap name format of library
+	// +kubebuilder:validation:Optional
+	ConfigMap string `json:"configMap,omitempty"`
+
 	// Optional ready string of runtime for show
 	// +kubebuilder:validation:Optional
-	Ready string `json:"ready,omitempty"`
+	RuntimeStatus map[string]string `json:"runtimeStatus,omitempty"`
 }
 
 // +kubebuilder:resource:categories="kess",shortName="lib",singular="library"
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
-// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`,priority=0
-// +kubebuilder:printcolumn:name="Library",type=string,JSONPath=`.spec.library`,priority=0
-// +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.version`,priority=0
-// +kubebuilder:printcolumn:name="Runtime",type=string,JSONPath=`.spec.runtime`,priority=0
+// +kubebuilder:printcolumn:name="ConfigMap",type=string,JSONPath=`.status.configMap`,priority=10
+// +kubebuilder:printcolumn:name="Runtimes",type=string,JSONPath=`.status.runtimeStatus`,priority=10
 // +kubebuilder:object:root=true
 
 // Library is the Schema for the Libraries API

@@ -23,9 +23,27 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// RuntimeConfigMap bulabula
-type RuntimeConfigMap struct {
-	Name  string `json:"name,omitempty"`
+// RuntimeFunctions bulabula
+type RuntimeFunctions struct {
+	// The functions of runtime
+	// +kubebuilder:validation:Required
+	Name string `json:"name,omitempty"`
+
+	// The functions of runtime
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="/kess/fn/{Name}"
+	Mount string `json:"mount,omitempty"`
+}
+
+// RuntimeLibraries bulabula
+type RuntimeLibraries struct {
+	// The functions of runtime
+	// +kubebuilder:validation:Required
+	Name string `json:"name,omitempty"`
+
+	// The functions of runtime
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default="/kess/lib/{Name}"
 	Mount string `json:"mount,omitempty"`
 }
 
@@ -33,6 +51,14 @@ type RuntimeConfigMap struct {
 type RuntimeSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	// The functions of runtime
+	// +kubebuilder:validation:Optional
+	Functions []RuntimeFunctions `json:"functions,omitempty"`
+
+	// The libraries of runtime
+	// +kubebuilder:validation:Optional
+	Libraries []RuntimeLibraries `json:"libraries,omitempty"`
 
 	// The container image of runtime
 	// +kubebuilder:validation:Required
@@ -75,14 +101,6 @@ type RuntimeStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Optional functions config maps of runtime
-	// +kubebuilder:validation:Optional
-	Functions map[string]RuntimeConfigMap `json:"functions,omitemty"`
-
-	// Optional libraries config maps of runtime
-	// +kubebuilder:validation:Optional
-	Libraries map[string]RuntimeConfigMap `json:"libraries,omitempty"`
-
 	// Optional ready string of runtime for show
 	// +kubebuilder:validation:Optional
 	Ready string `json:"ready,omitempty"`
@@ -94,6 +112,8 @@ type RuntimeStatus struct {
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`,priority=0
 // +kubebuilder:printcolumn:name="Image",type=string,JSONPath=`.spec.image`,priority=0
 // +kubebuilder:printcolumn:name="Command",type=string,JSONPath=`.spec.command`,priority=10
+// +kubebuilder:printcolumn:name="Functions",type=string,JSONPath=`.spec.functions[*].name`,priority=0
+// +kubebuilder:printcolumn:name="Libraries",type=string,JSONPath=`.spec.libraries[*].name`,priority=0
 // +kubebuilder:object:root=true
 
 // Runtime is the Schema for the runtimes API

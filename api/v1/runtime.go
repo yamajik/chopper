@@ -43,12 +43,6 @@ func (r *Runtime) Default() {
 
 // DefaultStatus bulabula
 func (r *Runtime) DefaultStatus() {
-	if r.Status.Functions == nil {
-		r.Status.Functions = make(map[string]RuntimeConfigMap)
-	}
-	if r.Status.Libraries == nil {
-		r.Status.Libraries = make(map[string]RuntimeConfigMap)
-	}
 	if r.Status.Ready == "" {
 		r.Status.Ready = DefaultReady
 	}
@@ -63,15 +57,7 @@ func (r *Runtime) Labels() map[string]string {
 }
 
 // NamespacedName bulabula
-func (r *Runtime) NamespacedName() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      r.Name,
-		Namespace: r.Namespace,
-	}
-}
-
-// ConfigMapNamespacedName bulabula
-func (r *Runtime) ConfigMapNamespacedName(name string) types.NamespacedName {
+func (r *Runtime) NamespacedName(name string) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      name,
 		Namespace: r.Namespace,
@@ -79,53 +65,8 @@ func (r *Runtime) ConfigMapNamespacedName(name string) types.NamespacedName {
 }
 
 // Deployment bulabula
-func (r *Runtime) Deployment() appsv1.Deployment {
-	var (
-		volumes []apiv1.Volume
-		mounts  []apiv1.VolumeMount
-	)
-
+func (r *Runtime) Deployment(volumes []apiv1.Volume, mounts []apiv1.VolumeMount) appsv1.Deployment {
 	labels := r.Labels()
-
-	// Functions ConfigMap Volumes
-	{
-		for _, fn := range r.Status.Functions {
-			volumes = append(volumes, apiv1.Volume{
-				Name: fn.Name,
-				VolumeSource: apiv1.VolumeSource{
-					ConfigMap: &apiv1.ConfigMapVolumeSource{
-						LocalObjectReference: apiv1.LocalObjectReference{
-							Name: fn.Name,
-						},
-					},
-				},
-			})
-			mounts = append(mounts, apiv1.VolumeMount{
-				Name:      fn.Name,
-				MountPath: fn.Mount,
-			})
-		}
-	}
-
-	// Libraries ConfigMap Volumes
-	{
-		for _, lib := range r.Status.Libraries {
-			volumes = append(volumes, apiv1.Volume{
-				Name: lib.Name,
-				VolumeSource: apiv1.VolumeSource{
-					ConfigMap: &apiv1.ConfigMapVolumeSource{
-						LocalObjectReference: apiv1.LocalObjectReference{
-							Name: lib.Name,
-						},
-					},
-				},
-			})
-			mounts = append(mounts, apiv1.VolumeMount{
-				Name:      lib.Name,
-				MountPath: lib.Mount,
-			})
-		}
-	}
 
 	port := apiv1.ContainerPort{
 		Name:          r.Spec.PortName,
@@ -143,9 +84,10 @@ func (r *Runtime) Deployment() appsv1.Deployment {
 
 	template := apiv1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.Name,
-			Namespace: r.Namespace,
-			Labels:    labels,
+			Name:        r.Name,
+			Namespace:   r.Namespace,
+			Labels:      labels,
+			Annotations: r.Annotations,
 		},
 		Spec: apiv1.PodSpec{
 			Volumes:    volumes,
@@ -173,13 +115,6 @@ func (r *Runtime) Deployment() appsv1.Deployment {
 	}
 
 	return deployment
-}
-
-// UpdateDeployment bulabula
-func (r *Runtime) UpdateDeployment(out *appsv1.Deployment) {
-	in := r.Deployment()
-	out.ObjectMeta = in.ObjectMeta
-	out.Spec = in.Spec
 }
 
 // Service bulabula
@@ -213,50 +148,8 @@ func (r *Runtime) Service() apiv1.Service {
 	return service
 }
 
-// UpdateService bulabula
-func (r *Runtime) UpdateService(out *apiv1.Service) {
-	in := r.Service()
-	out.ObjectMeta = in.ObjectMeta
-	out.Spec = in.Spec
-}
-
-// UpdateStatusFunctions bulabula
-func (r *Runtime) UpdateStatusFunctions(fn *Function) {
-	r.DefaultStatus()
-	runtimeConfigMap := fn.RuntimeConfigMap()
-	r.Status.Functions[runtimeConfigMap.Name] = runtimeConfigMap
-}
-
-// DeleteStatusFunctions bulabula
-func (r *Runtime) DeleteStatusFunctions(fn *Function) {
-	r.DefaultStatus()
-	if len(r.Status.Functions) == 0 {
-		return
-	}
-	runtimeConfigMap := fn.RuntimeConfigMap()
-	delete(r.Status.Libraries, runtimeConfigMap.Name)
-}
-
-// UpdateStatusLibraries bulabula
-func (r *Runtime) UpdateStatusLibraries(lib *Library) {
-	r.DefaultStatus()
-	runtimeConfigMap := lib.RuntimeConfigMap()
-	r.Status.Libraries[runtimeConfigMap.Name] = runtimeConfigMap
-}
-
-// DeleteStatusLibraries bulabula
-func (r *Runtime) DeleteStatusLibraries(lib *Library) {
-	r.DefaultStatus()
-	if len(r.Status.Libraries) == 0 {
-		return
-	}
-	runtimeConfigMap := lib.RuntimeConfigMap()
-	delete(r.Status.Libraries, runtimeConfigMap.Name)
-}
-
 // UpdateStatusReady bulabula
 func (r *Runtime) UpdateStatusReady(deploy *appsv1.Deployment) {
-	r.DefaultStatus()
 	r.Status.Ready = utilsstrings.Format(r.Spec.ReadyFormat, map[string]interface{}{
 		"Replicas":            strconv.Itoa(int(deploy.Status.Replicas)),
 		"UpdatedReplicas":     strconv.Itoa(int(deploy.Status.UpdatedReplicas)),

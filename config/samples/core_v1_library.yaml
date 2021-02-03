@@ -3,7 +3,6 @@ kind: Library
 metadata:
   name: sample
 spec:
-  runtime: python3
   data:
     __init__.py: |
       def test():

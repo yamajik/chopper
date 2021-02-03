@@ -1,8 +1,27 @@
 apiVersion: core.kess.io/v1
 kind: Runtime
 metadata:
-  name: python3
+  name: python
 spec:
-  image: "yamajik/kess-python-runtime:3"
-  command: ["/start-reload.sh"]
+  image: "yamajik/kess-python:latest"
   port: 80
+  functions:
+  - name: sample
+  libraries:
+  - name: sample
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: sample
+  labels:
+    kess-runtime: python
+    kess-function: sample
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /sample
+            backend:
+              serviceName: python
+              servicePort: 80

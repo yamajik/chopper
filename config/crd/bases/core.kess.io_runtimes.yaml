@@ -31,6 +31,12 @@ spec:
       name: Command
       priority: 10
       type: string
+    - jsonPath: .spec.functions[*].name
+      name: Functions
+      type: string
+    - jsonPath: .spec.libraries[*].name
+      name: Libraries
+      type: string
     name: v1
     schema:
       openAPIV3Schema:
@@ -59,9 +65,37 @@ spec:
                 items:
                   type: string
                 type: array
+              functions:
+                description: The functions of runtime
+                items:
+                  description: RuntimeFunctions bulabula
+                  properties:
+                    mount:
+                      default: /kess/fn/{Name}
+                      description: The functions of runtime
+                      type: string
+                    name:
+                      description: The functions of runtime
+                      type: string
+                  type: object
+                type: array
               image:
                 description: The container image of runtime
                 type: string
+              libraries:
+                description: The libraries of runtime
+                items:
+                  description: RuntimeLibraries bulabula
+                  properties:
+                    mount:
+                      default: /kess/lib/{Name}
+                      description: The functions of runtime
+                      type: string
+                    name:
+                      description: The functions of runtime
+                      type: string
+                  type: object
+                type: array
               port:
                 default: 8000
                 description: Optional port for runtime.
@@ -87,28 +121,6 @@ spec:
           status:
             description: RuntimeStatus defines the observed state of Runtime
             properties:
-              functions:
-                additionalProperties:
-                  description: RuntimeConfigMap bulabula
-                  properties:
-                    mount:
-                      type: string
-                    name:
-                      type: string
-                  type: object
-                description: Optional functions config maps of runtime
-                type: object
-              libraries:
-                additionalProperties:
-                  description: RuntimeConfigMap bulabula
-                  properties:
-                    mount:
-                      type: string
-                    name:
-                      type: string
-                  type: object
-                description: Optional libraries config maps of runtime
-                type: object
               ready:
                 description: Optional ready string of runtime for show
                 type: string

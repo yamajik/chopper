@@ -21,17 +21,13 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.ready
-      name: Ready
+    - jsonPath: .status.configMap
+      name: ConfigMap
+      priority: 10
       type: string
-    - jsonPath: .spec.library
-      name: Library
-      type: string
-    - jsonPath: .spec.version
-      name: Version
-      type: string
-    - jsonPath: .spec.runtime
-      name: Runtime
+    - jsonPath: .status.runtimeStatus
+      name: Runtimes
+      priority: 10
       type: string
     name: v1
     schema:
@@ -57,41 +53,29 @@ spec:
                 additionalProperties:
                   format: byte
                   type: string
-                description: The binary of lib
+                description: The binary files of library
                 type: object
               configMap:
-                description: The filename format of lib
-                properties:
-                  mount:
-                    default: /kess/lib/{Name}-{Version}
-                    description: The filename format of function
-                    type: string
-                  name:
-                    default: lib-{Name}-{Version}
-                    description: The filename format of function
-                    type: string
-                type: object
+                default: lib-{Name}
+                description: The configmap name format of library
+                type: string
               data:
                 additionalProperties:
                   type: string
-                description: The string of lib
+                description: The string files of library
                 type: object
-              library:
-                description: Optional version of function
-                type: string
-              runtime:
-                description: The runtime name of lib
-                type: string
-              version:
-                description: Optional version of function
-                type: string
             type: object
           status:
             description: LibraryStatus defines the observed state of Library
             properties:
-              ready:
-                description: Optional ready string of runtime for show
+              configMap:
+                description: The configmap name format of library
                 type: string
+              runtimeStatus:
+                additionalProperties:
+                  type: string
+                description: Optional ready string of runtime for show
+                type: object
             type: object
         type: object
     served: true

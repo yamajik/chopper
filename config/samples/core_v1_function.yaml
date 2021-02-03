@@ -1,45 +1,18 @@
 apiVersion: core.kess.io/v1
 kind: Function
 metadata:
-  name: sample1
+  name: sample
 spec:
-  runtime: python3
-  file:
-    name: "{Version}.py"
-  data: |
-    from kess import Function
-    fn = Function()
-    @fn.get("/")
-    def sample1():
-        return {"fn": "sample6"}
----
-apiVersion: core.kess.io/v1
-kind: Function
-metadata:
-  name: sample1-v2
-spec:
-  runtime: python3
-  file:
-    name: "{Version}.py"
-  data: |
-    from kess import Function
-    fn = Function()
-    @fn.get("/")
-    def sample1():
-        return {"fn": "sample1-v2"}
----
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: sample1
-  labels:
-    kess-runtime: python3
-    kess-function: sample1
-spec:
-  rules:
-    - http:
-        paths:
-          - path: /sample1
-            backend:
-              serviceName: python3
-              servicePort: 80
+  data:
+    v1.py: |
+      from kess import Function
+      fn = Function()
+      @fn.h("/")
+      def sample():
+          return {"fn": "sample", "version": "v1"}
+    v2.py: |
+      from kess import Function
+      fn = Function()
+      @fn.h("/")
+      def sample():
+          return {"fn": "sample", "version": "v2"}

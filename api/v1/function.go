@@ -5,14 +5,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/xorcare/pointer"
+	"github.com/yamajik/kess/utils/strings"
 )
 
 // Default bulabula
 func (r *Function) Default() {
 	var (
-		labels       = r.Labels()
-		namedVersion = r.NamedVersion()
+		labels = r.Labels()
 	)
 
 	if r.ObjectMeta.Labels == nil {
@@ -21,33 +20,14 @@ func (r *Function) Default() {
 	for k, v := range labels {
 		r.ObjectMeta.Labels[k] = v
 	}
-
-	if r.Spec.Function == "" {
-		r.Spec.Function = namedVersion.Name
-	}
-	if r.Spec.Version == "" {
-		r.Spec.Version = namedVersion.Version
-	}
 }
 
 // DefaultStatus bulabula
 func (r *Function) DefaultStatus() {
-	if r.Status.Ready == "" {
-		r.Status.Ready = DefaultReady
-	}
-}
+	r.Status.ConfigMap = r.ConfigMapName()
 
-// NamedVersion bulabula
-func (r *Function) NamedVersion() NamedVersion {
-	return NamedVersionFromString(r.Name)
-}
-
-// RuntimeConfigMap bulabula
-func (r *Function) RuntimeConfigMap() RuntimeConfigMap {
-	namedVersion := r.NamedVersion()
-	return RuntimeConfigMap{
-		Name:  namedVersion.Format(r.Spec.ConfigMap.Name),
-		Mount: namedVersion.Format(r.Spec.ConfigMap.Mount),
+	if r.Status.RuntimeStatus == nil {
+		r.Status.RuntimeStatus = make(map[string]string)
 	}
 }
 
@@ -55,18 +35,24 @@ func (r *Function) RuntimeConfigMap() RuntimeConfigMap {
 func (r *Function) Labels() map[string]string {
 	return map[string]string{
 		"kess-type":     TypeFunction,
-		"kess-function": r.Spec.Function,
-		"kess-version":  r.Spec.Version,
-		"kess-runtime":  r.Spec.Runtime,
+		"kess-function": r.Name,
 	}
 }
 
-// RuntimeNamespacedName bulabula
-func (r *Function) RuntimeNamespacedName() types.NamespacedName {
+// NamespacedName bulabula
+func (r *Function) NamespacedName(name string) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      r.Spec.Runtime,
+		Name:      name,
 		Namespace: r.Namespace,
 	}
+}
+
+// ConfigMapName bulabula
+func (r *Function) ConfigMapName() string {
+	m := map[string]interface{}{
+		"Name": r.Name,
+	}
+	return strings.Format(r.Spec.ConfigMap, m)
 }
 
 // ConfigMap bulabula
@@ -79,55 +65,29 @@ func (r *Function) ConfigMap() apiv1.ConfigMap {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.RuntimeConfigMap().Name,
+			Name:      r.ConfigMapName(),
 			Namespace: r.Namespace,
 			Labels:    labels,
 		},
-		Immutable: pointer.Bool(true),
+		Data:       r.Spec.Data,
+		BinaryData: r.Spec.BinaryData,
 	}
-
-	r.SetConfigMap(&configmap)
 
 	return configmap
 }
 
-// ConfigMapNamespacedName bulabula
-func (r *Function) ConfigMapNamespacedName() types.NamespacedName {
+// RuntimeNamespacedName bulabula
+func (r *Function) RuntimeNamespacedName(name string) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      r.RuntimeConfigMap().Name,
+		Name:      name,
 		Namespace: r.Namespace,
 	}
 }
 
-// SetConfigMap bulabula
-func (r *Function) SetConfigMap(out *apiv1.ConfigMap) {
-	key := r.NamedVersion().Format(r.Spec.File.Name)
-	if r.Spec.Data != "" {
-		if out.Data == nil {
-			out.Data = make(map[string]string)
-		}
-		out.Data[key] = r.Spec.Data
+// UpdateRuntimeStatus bulabula
+func (r *Function) UpdateRuntimeStatus(rt *Runtime) {
+	if r.Status.RuntimeStatus == nil {
+		r.Status.RuntimeStatus = make(map[string]string)
 	}
-	if len(r.Spec.BinaryData) > 0 {
-		if out.BinaryData == nil {
-			out.BinaryData = make(map[string][]byte)
-		}
-		out.BinaryData[key] = r.Spec.BinaryData
-	}
-}
-
-// UnsetConfigMap bulabula
-func (r *Function) UnsetConfigMap(out *apiv1.ConfigMap) {
-	key := r.NamedVersion().Format(r.Spec.File.Name)
-	if out.Data != nil {
-		delete(out.Data, key)
-	}
-	if out.BinaryData != nil {
-		delete(out.BinaryData, key)
-	}
-}
-
-// UpdateStatusReady bulabula
-func (r *Function) UpdateStatusReady(rt *Runtime) {
-	r.Status.Ready = rt.Status.Ready
+	r.Status.RuntimeStatus[rt.Name] = rt.Status.Ready
 }
