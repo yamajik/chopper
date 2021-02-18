@@ -2,7 +2,7 @@
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:crdVersions=v1"
+CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -26,17 +26,17 @@ run: generate fmt vet manifests
 	go run ./main.go
 
 # Install CRDs into a cluster
-install: manifests
-	kustomize build config/crd | kubectl apply -f -
+install: manifests kustomize
+	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
 # Uninstall CRDs from a cluster
-uninstall: manifests
-	kustomize build config/crd | kubectl delete -f -
+uninstall: manifests kustomize
+	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
-	cd config/manager && kustomize edit set image controller=${IMG}
-	kustomize build config/default | kubectl apply -f -
+deploy: manifests kustomize
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
@@ -71,7 +71,7 @@ ifeq (, $(shell which controller-gen))
 	CONTROLLER_GEN_TMP_DIR=$$(mktemp -d) ;\
 	cd $$CONTROLLER_GEN_TMP_DIR ;\
 	go mod init tmp ;\
-	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.2.5 ;\
+	go get sigs.k8s.io/controller-tools/cmd/controller-gen@v0.3.0 ;\
 	rm -rf $$CONTROLLER_GEN_TMP_DIR ;\
 	}
 CONTROLLER_GEN=$(GOBIN)/controller-gen
@@ -79,10 +79,25 @@ else
 CONTROLLER_GEN=$(shell which controller-gen)
 endif
 
+kustomize:
+ifeq (, $(shell which kustomize))
+	@{ \
+	set -e ;\
+	KUSTOMIZE_GEN_TMP_DIR=$$(mktemp -d) ;\
+	cd $$KUSTOMIZE_GEN_TMP_DIR ;\
+	go mod init tmp ;\
+	go get sigs.k8s.io/kustomize/kustomize/v3@v3.5.4 ;\
+	rm -rf $$KUSTOMIZE_GEN_TMP_DIR ;\
+	}
+KUSTOMIZE=$(GOBIN)/kustomize
+else
+KUSTOMIZE=$(shell which kustomize)
+endif
+
 images: docker-build docker-push
 
 k3d-cluster:
-	k3d cluster create kess --api-port 6443 --no-lb -p 80:80@server[0] --switch-context --wait
+	k3d cluster create kess --api-port 6443 --no-lb -p 8000:80@server[0] --wait
 
 k3d-import-base:
 	k3d image import gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0 -c kess
@@ -94,21 +109,21 @@ dev: dev-deploy
 
 dev-deploy: docker-build k3d-import deploy
 
-dev-ns:
-	kubectl create ns kess-system
-	kubectl create ns kess-samples
-
 dev-logs:
 	kubectl -n kess-system logs -l control-plane=controller-manager --all-containers -f
 
 dev-samples:
+	kubectl create ns kess-samples || echo "OK"
 	kubectl -n kess-samples apply -f config/samples
 
 dev-samples-list:
 	kubectl -n kess-samples get kess,all,cm,ing
 
 dev-samples-watch:
-	watch -n 1 kubectl -n kess-samples get kess,all,cm,ing
+	watch -n 1 kubectl -n kess-samples get kess -o wide
+
+dev-samples-watch-others:
+	watch -n 1 kubectl -n kess-samples get all,cm -o wide
 
 dev-samples-delete:
 	kubectl -n kess-samples delete kess --all

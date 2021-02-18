@@ -4,17 +4,17 @@ kind: ClusterRole
 metadata:
   name: runtime-viewer-role
 rules:
-- apiGroups:
-  - core.kess.io
-  resources:
-  - runtimes
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - core.kess.io
-  resources:
-  - runtimes/status
-  verbs:
-  - get
+  - apiGroups:
+      - core.kess.io
+    resources:
+      - runtimes
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - core.kess.io
+    resources:
+      - runtimes/status
+    verbs:
+      - get

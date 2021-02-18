@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021 yamajik.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,12 +20,15 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	corev1 "github.com/yamajik/kess/api/v1"
+	corev1 "github.com/yamajik/kess/apis/core/v1"
 	"github.com/yamajik/kess/controllers/operations"
+	"github.com/yamajik/kess/utils/maps"
+	utilsstrings "github.com/yamajik/kess/utils/strings"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 )
@@ -49,6 +52,10 @@ func (r *RuntimeReconciler) Resource() operations.ResourceOperationsInterface {
 
 // +kubebuilder:rbac:groups=core.kess.io,resources=runtimes,verbs=list;get;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core.kess.io,resources=runtimes/status,verbs=update;patch
+// +kubebuilder:rbac:groups=core.kess.io,resources=functions,verbs=list;get;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core.kess.io,resources=functions/status,verbs=update;patch
+// +kubebuilder:rbac:groups=core.kess.io,resources=libraries,verbs=list;get;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core.kess.io,resources=libraries/status,verbs=update;patch
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=list;get;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apps,resources=deployments/status,verbs=update;patch
 // +kubebuilder:rbac:groups="",resources=services,verbs=list;get;watch;create;update;patch;delete
@@ -106,8 +113,36 @@ func (r *RuntimeReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *RuntimeReconciler) applyStatus(ctx context.Context, rt *corev1.Runtime) error {
 	if _, err := r.Resource().Status().Update(ctx, rt, func() error {
 		var deploy appsv1.Deployment
-		r.Get(ctx, rt.NamespacedName(rt.Name), &deploy)
+		if _, err := r.Resource().Get(ctx, rt.NamespacedName(rt.Name), &deploy); err != nil {
+		}
 		rt.UpdateStatusReady(&deploy)
+
+		for _, rtfn := range rt.Spec.Functions {
+			var fn corev1.Function
+			if _, err := r.Resource().Get(ctx, rt.NamespacedName(rtfn.Name), &fn); err != nil {
+				rt.Status.Functions = maps.MergeString(rt.Status.Functions, map[string]string{
+					rtfn.Name: "",
+				})
+			} else {
+				rt.Status.Functions = maps.MergeString(rt.Status.Functions, map[string]string{
+					rtfn.Name: fn.Status.Hash,
+				})
+			}
+		}
+
+		for _, rtlib := range rt.Spec.Libraries {
+			var lib corev1.Library
+			if _, err := r.Resource().Get(ctx, rt.NamespacedName(rtlib.Name), &lib); err != nil {
+				rt.Status.Libraries = maps.MergeString(rt.Status.Libraries, map[string]string{
+					rtlib.Name: "",
+				})
+			} else {
+				rt.Status.Libraries = maps.MergeString(rt.Status.Libraries, map[string]string{
+					rtlib.Name: lib.Status.Hash,
+				})
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return err
@@ -127,21 +162,26 @@ func (r *RuntimeReconciler) applyExternalResources(ctx context.Context, rt *core
 		if _, err := r.Resource().Get(ctx, rt.NamespacedName(rtfn.Name), &fn); err != nil {
 			return err
 		}
-		volumeName := fn.ConfigMapName()
-		volumes = append(volumes, apiv1.Volume{
-			Name: volumeName,
-			VolumeSource: apiv1.VolumeSource{
-				ConfigMap: &apiv1.ConfigMapVolumeSource{
-					LocalObjectReference: apiv1.LocalObjectReference{
-						Name: volumeName,
+
+		if fn.Status.Hash != "" {
+			volumeName := fn.ConfigMapName(fn.Status.Hash)
+			volumes = append(volumes, apiv1.Volume{
+				Name: volumeName,
+				VolumeSource: apiv1.VolumeSource{
+					ConfigMap: &apiv1.ConfigMapVolumeSource{
+						LocalObjectReference: apiv1.LocalObjectReference{
+							Name: volumeName,
+						},
 					},
 				},
-			},
-		})
-		mounts = append(mounts, apiv1.VolumeMount{
-			Name:      volumeName,
-			MountPath: rtfn.Mount,
-		})
+			})
+			mounts = append(mounts, apiv1.VolumeMount{
+				Name: volumeName,
+				MountPath: utilsstrings.Format(rtfn.Mount, map[string]interface{}{
+					"Name": fn.Name,
+				}),
+			})
+		}
 	}
 
 	for _, rtlib := range rt.Spec.Libraries {
@@ -149,21 +189,26 @@ func (r *RuntimeReconciler) applyExternalResources(ctx context.Context, rt *core
 		if _, err := r.Resource().Get(ctx, rt.NamespacedName(rtlib.Name), &lib); err != nil {
 			return err
 		}
-		volumeName := lib.ConfigMapName()
-		volumes = append(volumes, apiv1.Volume{
-			Name: volumeName,
-			VolumeSource: apiv1.VolumeSource{
-				ConfigMap: &apiv1.ConfigMapVolumeSource{
-					LocalObjectReference: apiv1.LocalObjectReference{
-						Name: volumeName,
+
+		if lib.Status.Hash != "" {
+			volumeName := lib.ConfigMapName(lib.Status.Hash)
+			volumes = append(volumes, apiv1.Volume{
+				Name: volumeName,
+				VolumeSource: apiv1.VolumeSource{
+					ConfigMap: &apiv1.ConfigMapVolumeSource{
+						LocalObjectReference: apiv1.LocalObjectReference{
+							Name: volumeName,
+						},
 					},
 				},
-			},
-		})
-		mounts = append(mounts, apiv1.VolumeMount{
-			Name:      volumeName,
-			MountPath: rtlib.Mount,
-		})
+			})
+			mounts = append(mounts, apiv1.VolumeMount{
+				Name: volumeName,
+				MountPath: utilsstrings.Format(rtlib.Mount, map[string]interface{}{
+					"Name": lib.Name,
+				}),
+			})
+		}
 	}
 
 	var (
@@ -193,12 +238,36 @@ func (r *RuntimeReconciler) deleteExternalResources(ctx context.Context, rt *cor
 		deleteOptions  = client.DeleteOptions{}
 	)
 
+	for _, rtfn := range rt.Spec.Functions {
+		var fn corev1.Function
+		if _, err := r.Resource().Get(ctx, rt.NamespacedName(rtfn.Name), &fn); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return err
+			}
+			continue
+		}
+	}
+
+	for _, rtlib := range rt.Spec.Libraries {
+		var lib corev1.Library
+		if _, err := r.Resource().Get(ctx, rt.NamespacedName(rtlib.Name), &lib); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return err
+			}
+			continue
+		}
+	}
+
 	if _, err := r.Resource().GetAndDelete(ctx, namespacedName, &deploy, &deleteOptions); err != nil {
-		return err
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
 	}
 
 	if _, err := r.Resource().GetAndDelete(ctx, namespacedName, &svc, &deleteOptions); err != nil {
-		return err
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
 	}
 
 	return nil

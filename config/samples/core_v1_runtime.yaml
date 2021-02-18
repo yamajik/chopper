@@ -5,10 +5,13 @@ metadata:
 spec:
   image: "yamajik/kess-python:latest"
   port: 80
+  env:
+    - name: KESS_ROUTE_PREFIX
+      value: "/kess/python"
   functions:
-  - name: sample
+    - name: sample
   libraries:
-  - name: sample
+    - name: sample
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
@@ -16,12 +19,12 @@ metadata:
   name: sample
   labels:
     kess-runtime: python
-    kess-function: sample
+    kess-fn: sample
 spec:
   rules:
     - http:
         paths:
-          - path: /sample
+          - path: /kess/python
             backend:
               serviceName: python
               servicePort: 80

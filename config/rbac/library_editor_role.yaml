@@ -4,21 +4,21 @@ kind: ClusterRole
 metadata:
   name: library-editor-role
 rules:
-- apiGroups:
-  - core.kess.io
-  resources:
-  - libraries
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - core.kess.io
-  resources:
-  - libraries/status
-  verbs:
-  - get
+  - apiGroups:
+      - core.kess.io
+    resources:
+      - libraries
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - core.kess.io
+    resources:
+      - libraries/status
+    verbs:
+      - get

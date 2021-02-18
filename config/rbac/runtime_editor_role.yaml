@@ -4,21 +4,21 @@ kind: ClusterRole
 metadata:
   name: runtime-editor-role
 rules:
-- apiGroups:
-  - core.kess.io
-  resources:
-  - runtimes
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - core.kess.io
-  resources:
-  - runtimes/status
-  verbs:
-  - get
+  - apiGroups:
+      - core.kess.io
+    resources:
+      - runtimes
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - core.kess.io
+    resources:
+      - runtimes/status
+    verbs:
+      - get

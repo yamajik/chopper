@@ -1,5 +1,4 @@
 domain: kess.io
-multigroup: true
 repo: github.com/yamajik/kess
 resources:
 - group: core
@@ -10,5 +9,8 @@ resources:
   version: v1
 - group: core
   kind: Library
+  version: v1
+- group: core
+  kind: Trigger
   version: v1
 version: "2"

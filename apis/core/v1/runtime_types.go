@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021 yamajik.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -31,7 +32,7 @@ type RuntimeFunctions struct {
 
 	// The functions of runtime
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="/kess/fn/{Name}"
+	// +kubebuilder:default="/app/fn/{Name}"
 	Mount string `json:"mount,omitempty"`
 }
 
@@ -43,7 +44,7 @@ type RuntimeLibraries struct {
 
 	// The functions of runtime
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="/kess/lib/{Name}"
+	// +kubebuilder:default="/app/lib/{Name}"
 	Mount string `json:"mount,omitempty"`
 }
 
@@ -67,6 +68,10 @@ type RuntimeSpec struct {
 	// The container image of runtime
 	// +kubebuilder:validation:Optional
 	Command []string `json:"command,omitempty"`
+
+	// The container image of runtime
+	// +kubebuilder:validation:Optional
+	Env []apiv1.EnvVar `json:"env,omitempty"`
 
 	// Optional port for runtime.
 	// +kubebuilder:validation:Optional
@@ -104,16 +109,27 @@ type RuntimeStatus struct {
 	// Optional ready string of runtime for show
 	// +kubebuilder:validation:Optional
 	Ready string `json:"ready,omitempty"`
+
+	// Optional functions string of runtime for show
+	// +kubebuilder:validation:Optional
+	Functions map[string]string `json:"functions,omitempty"`
+
+	// Optional libraries string of runtime for show
+	// +kubebuilder:validation:Optional
+	Libraries map[string]string `json:"libraries,omitempty"`
 }
 
 // +kubebuilder:resource:categories="kess",shortName="rt"
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
-// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`,priority=0
-// +kubebuilder:printcolumn:name="Image",type=string,JSONPath=`.spec.image`,priority=0
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.ready`
+// +kubebuilder:printcolumn:name="Image",type=string,JSONPath=`.spec.image`
 // +kubebuilder:printcolumn:name="Command",type=string,JSONPath=`.spec.command`,priority=10
-// +kubebuilder:printcolumn:name="Functions",type=string,JSONPath=`.spec.functions[*].name`,priority=0
-// +kubebuilder:printcolumn:name="Libraries",type=string,JSONPath=`.spec.libraries[*].name`,priority=0
+// +kubebuilder:printcolumn:name="Functions",type=string,JSONPath=`.spec.functions[*].name`
+// +kubebuilder:printcolumn:name="Libraries",type=string,JSONPath=`.spec.libraries[*].name`
+// +kubebuilder:printcolumn:name="Functions_Hash",type=string,JSONPath=`.status.functions`,priority=10
+// +kubebuilder:printcolumn:name="Libraries_Hash",type=string,JSONPath=`.status.libraries`,priority=10
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:object:root=true
 
 // Runtime is the Schema for the runtimes API

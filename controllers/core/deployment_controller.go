@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021 yamajik.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	corev1 "github.com/yamajik/kess/api/v1"
+	corev1 "github.com/yamajik/kess/apis/core/v1"
 	"github.com/yamajik/kess/controllers/operations"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

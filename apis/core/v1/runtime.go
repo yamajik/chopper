@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021 yamajik.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,9 @@ limitations under the License.
 package v1
 
 import (
+	"fmt"
 	"strconv"
+	"time"
 
 	utilsstrings "github.com/yamajik/kess/utils/strings"
 	appsv1 "k8s.io/api/apps/v1"
@@ -27,33 +29,30 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// Default bulabula
-func (r *Runtime) Default() {
-	var (
-		labels = r.Labels()
-	)
-
-	if r.ObjectMeta.Labels == nil {
-		r.ObjectMeta.Labels = make(map[string]string)
-	}
-	for k, v := range labels {
-		r.ObjectMeta.Labels[k] = v
-	}
-}
-
-// DefaultStatus bulabula
-func (r *Runtime) DefaultStatus() {
-	if r.Status.Ready == "" {
-		r.Status.Ready = DefaultReady
-	}
-}
-
 // Labels bulabula
 func (r *Runtime) Labels() map[string]string {
 	return map[string]string{
 		"kess-type":    TypeRuntime,
 		"kess-runtime": r.Name,
 	}
+}
+
+// FunctionLabels bulabula
+func (r *Runtime) FunctionLabels() map[string]string {
+	labels := make(map[string]string)
+	for _, rtfn := range r.Spec.Functions {
+		labels[fmt.Sprintf("kess-fn-%s", rtfn.Name)] = ""
+	}
+	return labels
+}
+
+// LibraryLabels bulabula
+func (r *Runtime) LibraryLabels() map[string]string {
+	labels := make(map[string]string)
+	for _, rtlib := range r.Spec.Libraries {
+		labels[fmt.Sprintf("kess-lib-%s", rtlib.Name)] = ""
+	}
+	return labels
 }
 
 // NamespacedName bulabula
@@ -78,6 +77,7 @@ func (r *Runtime) Deployment(volumes []apiv1.Volume, mounts []apiv1.VolumeMount)
 		Name:         r.Name,
 		Image:        r.Spec.Image,
 		Command:      r.Spec.Command,
+		Env:          r.Spec.Env,
 		Ports:        []apiv1.ContainerPort{port},
 		VolumeMounts: mounts,
 	}
@@ -101,9 +101,10 @@ func (r *Runtime) Deployment(volumes []apiv1.Volume, mounts []apiv1.VolumeMount)
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.Name,
-			Namespace: r.Namespace,
-			Labels:    labels,
+			Name:        r.Name,
+			Namespace:   r.Namespace,
+			Labels:      labels,
+			Annotations: r.Annotations,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
@@ -134,9 +135,10 @@ func (r *Runtime) Service() apiv1.Service {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.Name,
-			Namespace: r.Namespace,
-			Labels:    labels,
+			Name:        r.Name,
+			Namespace:   r.Namespace,
+			Labels:      labels,
+			Annotations: r.Annotations,
 		},
 		Spec: apiv1.ServiceSpec{
 			Selector:  labels,
@@ -157,4 +159,32 @@ func (r *Runtime) UpdateStatusReady(deploy *appsv1.Deployment) {
 		"AvailableReplicas":   strconv.Itoa(int(deploy.Status.AvailableReplicas)),
 		"UnavailableReplicas": strconv.Itoa(int(deploy.Status.UnavailableReplicas)),
 	})
+}
+
+// ContainsFunction bulabula
+func (r *Runtime) ContainsFunction(name string) bool {
+	for _, f := range r.Spec.Functions {
+		if f.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsLibrary bulabula
+func (r *Runtime) ContainsLibrary(name string) bool {
+	for _, f := range r.Spec.Libraries {
+		if f.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// UpdateVersionConfig bulabula
+func (r *Runtime) UpdateVersionConfig() {
+	if r.Annotations == nil {
+		r.Annotations = make(map[string]string)
+	}
+	r.Annotations[VersionConfig] = strconv.Itoa(time.Now().Nanosecond())
 }

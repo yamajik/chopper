@@ -5,38 +5,28 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/yamajik/kess/utils/hash"
 	"github.com/yamajik/kess/utils/strings"
 )
-
-// Default bulabula
-func (r *Library) Default() {
-	var (
-		labels = r.Labels()
-	)
-
-	if r.ObjectMeta.Labels == nil {
-		r.ObjectMeta.Labels = make(map[string]string)
-	}
-	for k, v := range labels {
-		r.ObjectMeta.Labels[k] = v
-	}
-}
-
-// DefaultStatus bulabula
-func (r *Library) DefaultStatus() {
-	r.Status.ConfigMap = r.ConfigMapName()
-
-	if r.Status.RuntimeStatus == nil {
-		r.Status.RuntimeStatus = make(map[string]string)
-	}
-}
 
 // Labels bulabula
 func (r *Library) Labels() map[string]string {
 	return map[string]string{
-		"kess-type":    TypeLibrary,
-		"kess-library": r.Name,
+		"kess-type": TypeLibrary,
+		"kess-lib":  r.Name,
 	}
+}
+
+// HashLabels bulabula
+func (r *Library) HashLabels(hash string) map[string]string {
+	return map[string]string{
+		"kess-hash": hash,
+	}
+}
+
+// RuntimeStatus bulabula
+func (r *Library) RuntimeStatus() map[string]string {
+	return map[string]string{}
 }
 
 // NamespacedName bulabula
@@ -48,15 +38,16 @@ func (r *Library) NamespacedName(name string) types.NamespacedName {
 }
 
 // ConfigMapName bulabula
-func (r *Library) ConfigMapName() string {
+func (r *Library) ConfigMapName(hash string) string {
 	m := map[string]interface{}{
 		"Name": r.Name,
+		"Hash": hash,
 	}
 	return strings.Format(r.Spec.ConfigMap, m)
 }
 
 // ConfigMap bulabula
-func (r *Library) ConfigMap() apiv1.ConfigMap {
+func (r *Library) ConfigMap(hash string) apiv1.ConfigMap {
 	labels := r.Labels()
 
 	configmap := apiv1.ConfigMap{
@@ -65,7 +56,7 @@ func (r *Library) ConfigMap() apiv1.ConfigMap {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.ConfigMapName(),
+			Name:      r.ConfigMapName(hash),
 			Namespace: r.Namespace,
 			Labels:    labels,
 		},
@@ -84,10 +75,12 @@ func (r *Library) RuntimeNamespacedName(name string) types.NamespacedName {
 	}
 }
 
-// UpdateRuntimeStatus bulabula
-func (r *Library) UpdateRuntimeStatus(rt *Runtime) {
-	if r.Status.RuntimeStatus == nil {
-		r.Status.RuntimeStatus = make(map[string]string)
+// Hash bulabula
+func (r *Library) Hash() (string, error) {
+	var m = map[string]interface{}{
+		"Data":       r.Spec.Data,
+		"BinaryData": r.Spec.BinaryData,
 	}
-	r.Status.RuntimeStatus[rt.Name] = rt.Status.Ready
+
+	return hash.FromMap(m)
 }

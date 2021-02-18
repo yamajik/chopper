@@ -5,38 +5,28 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/yamajik/kess/utils/hash"
 	"github.com/yamajik/kess/utils/strings"
 )
-
-// Default bulabula
-func (r *Function) Default() {
-	var (
-		labels = r.Labels()
-	)
-
-	if r.ObjectMeta.Labels == nil {
-		r.ObjectMeta.Labels = make(map[string]string)
-	}
-	for k, v := range labels {
-		r.ObjectMeta.Labels[k] = v
-	}
-}
-
-// DefaultStatus bulabula
-func (r *Function) DefaultStatus() {
-	r.Status.ConfigMap = r.ConfigMapName()
-
-	if r.Status.RuntimeStatus == nil {
-		r.Status.RuntimeStatus = make(map[string]string)
-	}
-}
 
 // Labels bulabula
 func (r *Function) Labels() map[string]string {
 	return map[string]string{
-		"kess-type":     TypeFunction,
-		"kess-function": r.Name,
+		"kess-type": TypeFunction,
+		"kess-fn":   r.Name,
 	}
+}
+
+// HashLabels bulabula
+func (r *Function) HashLabels(hash string) map[string]string {
+	return map[string]string{
+		"kess-hash": hash,
+	}
+}
+
+// RuntimeStatus bulabula
+func (r *Function) RuntimeStatus() map[string]string {
+	return map[string]string{}
 }
 
 // NamespacedName bulabula
@@ -48,15 +38,16 @@ func (r *Function) NamespacedName(name string) types.NamespacedName {
 }
 
 // ConfigMapName bulabula
-func (r *Function) ConfigMapName() string {
+func (r *Function) ConfigMapName(hash string) string {
 	m := map[string]interface{}{
 		"Name": r.Name,
+		"Hash": hash,
 	}
 	return strings.Format(r.Spec.ConfigMap, m)
 }
 
 // ConfigMap bulabula
-func (r *Function) ConfigMap() apiv1.ConfigMap {
+func (r *Function) ConfigMap(hash string) apiv1.ConfigMap {
 	labels := r.Labels()
 
 	configmap := apiv1.ConfigMap{
@@ -65,7 +56,7 @@ func (r *Function) ConfigMap() apiv1.ConfigMap {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      r.ConfigMapName(),
+			Name:      r.ConfigMapName(hash),
 			Namespace: r.Namespace,
 			Labels:    labels,
 		},
@@ -84,10 +75,20 @@ func (r *Function) RuntimeNamespacedName(name string) types.NamespacedName {
 	}
 }
 
-// UpdateRuntimeStatus bulabula
-func (r *Function) UpdateRuntimeStatus(rt *Runtime) {
-	if r.Status.RuntimeStatus == nil {
-		r.Status.RuntimeStatus = make(map[string]string)
+// ConfigMapNamespacedName bulabula
+func (r *Function) ConfigMapNamespacedName(hash string) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      r.ConfigMapName(hash),
+		Namespace: r.Namespace,
 	}
-	r.Status.RuntimeStatus[rt.Name] = rt.Status.Ready
+}
+
+// Hash bulabula
+func (r *Function) Hash() (string, error) {
+	var m = map[string]interface{}{
+		"Data":       r.Spec.Data,
+		"BinaryData": r.Spec.BinaryData,
+	}
+
+	return hash.FromMap(m)
 }

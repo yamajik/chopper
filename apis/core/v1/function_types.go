@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021 yamajik.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ type FunctionSpec struct {
 
 	// The configmap name format of function
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default="fn-{Name}"
+	// +kubebuilder:default="fn-{Name}-{Hash}"
 	ConfigMap string `json:"configMap,omitempty"`
 
 	// The string files of function
@@ -47,20 +47,21 @@ type FunctionStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
+	// The data format of function
+	// +kubebuilder:validation:Optional
+	Data int `json:"data,omitempty"`
+
 	// The configmap name format of function
 	// +kubebuilder:validation:Optional
-	ConfigMap string `json:"configMap,omitempty"`
-
-	// Optional ready string of runtime for show
-	// +kubebuilder:validation:Optional
-	RuntimeStatus map[string]string `json:"runtimeStatus,omitempty"`
+	Hash string `json:"hash,omitempty"`
 }
 
 // +kubebuilder:resource:categories="kess",shortName="fn"
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas,selectorpath=.status.selector
-// +kubebuilder:printcolumn:name="ConfigMap",type=string,JSONPath=`.status.configMap`,priority=10
-// +kubebuilder:printcolumn:name="Runtimes",type=string,JSONPath=`.status.runtimeStatus`,priority=10
+// +kubebuilder:printcolumn:name="Data",type=string,JSONPath=`.status.data`,priority=10
+// +kubebuilder:printcolumn:name="Hash",type=string,JSONPath=`.status.hash`,priority=10
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:object:root=true
 
 // Function is the Schema for the functions API

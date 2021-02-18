@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021 yamajik.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1 contains API Schema definitions for the kess v1 API group
+// Package v1 contains API Schema definitions for the core v1 API group
 // +kubebuilder:object:generate=true
 // +groupName=core.kess.io
 package v1

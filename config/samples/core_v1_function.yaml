@@ -7,12 +7,18 @@ spec:
     v1.py: |
       from kess import Function
       fn = Function()
-      @fn.h("/")
+      @fn.post("/")
       def sample():
           return {"fn": "sample", "version": "v1"}
     v2.py: |
       from kess import Function
       fn = Function()
-      @fn.h("/")
+      @fn.post("/")
       def sample():
           return {"fn": "sample", "version": "v2"}
+    v3.py: |
+      from kess import Function
+      fn = Function()
+      @fn.post("/")
+      def sample():
+          return {"fn": "sample", "version": "v3"}

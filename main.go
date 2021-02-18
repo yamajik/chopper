@@ -1,5 +1,5 @@
 /*
-
+Copyright 2021 yamajik.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,8 +26,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	corev1 "github.com/yamajik/kess/api/v1"
-	"github.com/yamajik/kess/controllers"
+	corev1 "github.com/yamajik/kess/apis/core/v1"
+	corecontroller "github.com/yamajik/kess/controllers/core"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -59,22 +59,14 @@ func main() {
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,
 		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "abff1558.kess.io",
+		LeaderElectionID:   "113cf3cb.kess.io",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	if err = (&controllers.RuntimeReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("Runtime"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Runtime")
-		os.Exit(1)
-	}
-	if err = (&controllers.FunctionReconciler{
+	if err = (&corecontroller.FunctionReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Function"),
 		Scheme: mgr.GetScheme(),
@@ -82,7 +74,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Function")
 		os.Exit(1)
 	}
-	if err = (&controllers.LibraryReconciler{
+	if err = (&corecontroller.LibraryReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Library"),
 		Scheme: mgr.GetScheme(),
@@ -90,7 +82,15 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Library")
 		os.Exit(1)
 	}
-	if err = (&controllers.DeploymentReconciler{
+	if err = (&corecontroller.RuntimeReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("Runtime"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Runtime")
+		os.Exit(1)
+	}
+	if err = (&corecontroller.DeploymentReconciler{
 		Client: mgr.GetClient(),
 		Log:    ctrl.Log.WithName("controllers").WithName("Deployment"),
 		Scheme: mgr.GetScheme(),
@@ -98,6 +98,18 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Deployment")
 		os.Exit(1)
 	}
+	// if err = (&corev1.Function{}).SetupWebhookWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create webhook", "webhook", "Function")
+	// 	os.Exit(1)
+	// }
+	// if err = (&corev1.Library{}).SetupWebhookWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create webhook", "webhook", "Library")
+	// 	os.Exit(1)
+	// }
+	// if err = (&corev1.Runtime{}).SetupWebhookWithManager(mgr); err != nil {
+	// 	setupLog.Error(err, "unable to create webhook", "webhook", "Runtime")
+	// 	os.Exit(1)
+	// }
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")

@@ -4,17 +4,17 @@ kind: ClusterRole
 metadata:
   name: function-viewer-role
 rules:
-- apiGroups:
-  - core.kess.io
-  resources:
-  - functions
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - core.kess.io
-  resources:
-  - functions/status
-  verbs:
-  - get
+  - apiGroups:
+      - core.kess.io
+    resources:
+      - functions
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - core.kess.io
+    resources:
+      - functions/status
+    verbs:
+      - get
