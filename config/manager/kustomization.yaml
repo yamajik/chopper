@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: yamajik/kess
-  newTag: dev-20210218172740
+  newTag: 0.5.0
