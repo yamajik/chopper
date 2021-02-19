@@ -1,30 +1,37 @@
 apiVersion: core.kess.io/v1
 kind: Runtime
 metadata:
-  name: python
+  name: fn
 spec:
   image: "yamajik/kess-python:latest"
   port: 80
   env:
-    - name: KESS_ROUTE_PREFIX
-      value: "/kess/python"
+    - name: KESS_RUNTIME_PREFIX
+      value: /fn
   functions:
-    - name: sample
-  libraries:
-    - name: sample
+    - name: call
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: sample
-  labels:
-    kess-runtime: python
-    kess-fn: sample
+  name: fn
 spec:
   rules:
     - http:
         paths:
-          - path: /kess/python
+          - path: /
             backend:
-              serviceName: python
+              serviceName: fn
               servicePort: 80
+---
+apiVersion: core.kess.io/v1
+kind: Runtime
+metadata:
+  name: python
+spec:
+  image: "yamajik/kess-python:latest"
+  port: 80
+  functions:
+    - name: sample
+  libraries:
+    - name: sample

@@ -1,24 +1,38 @@
 apiVersion: core.kess.io/v1
 kind: Function
 metadata:
+  name: call
+spec:
+  data:
+    v1.py: |
+      from typing import Optional, Dict
+      from kess import Function, rpc
+      from pydantic import BaseModel
+      fn = Function()
+      class Options(BaseModel):
+          runtime: str
+          function: str
+          version: Optional[str] = "v1"
+          data: Optional[Dict] = None
+      @fn.h
+      async def call(opts: Options):
+          return await rpc.rt(opts.runtime).fn(opts.function, opts.version).call(json=opts.data)
+---
+apiVersion: core.kess.io/v1
+kind: Function
+metadata:
   name: sample
 spec:
   data:
     v1.py: |
       from kess import Function
       fn = Function()
-      @fn.post("/")
+      @fn.h
       def sample():
           return {"fn": "sample", "version": "v1"}
     v2.py: |
       from kess import Function
       fn = Function()
-      @fn.post("/")
+      @fn.h
       def sample():
           return {"fn": "sample", "version": "v2"}
-    v3.py: |
-      from kess import Function
-      fn = Function()
-      @fn.post("/")
-      def sample():
-          return {"fn": "sample", "version": "v3"}
